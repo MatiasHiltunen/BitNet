@@ -201,6 +201,32 @@ optional arguments:
   --quant-embd          Quantize the embeddings to f16
   --use-pretuned, -p    Use the pretuned kernel parameters
 </pre>
+
+### Android (Termux, aarch64)
+
+For Android devices (Termux on aarch64), use the dedicated setup script:
+
+```bash
+pkg update
+pkg install -y python cmake ninja clang
+pip install -r requirements.txt
+
+# if you already have a GGUF model locally:
+python setup_env_android.py -md models/BitNet-b1.58-2B-4T -q i2_s
+```
+
+`setup_env_android.py` supports performance profiles:
+
+- `--profile auto` (default): uses a tuned profile when the CPU reports dot-product + i8mm support.
+- `--profile tuned-aarch64`: enables AArch64 optimization flags and disables OpenMP to reduce scheduling overhead on mobile big.LITTLE CPUs.
+- `--profile default`: conservative build profile.
+
+Example:
+
+```bash
+python setup_env_android.py -md models/BitNet-b1.58-2B-4T -q i2_s --profile tuned-aarch64 -j 4
+```
+
 ## Usage
 ### Basic usage
 ```bash

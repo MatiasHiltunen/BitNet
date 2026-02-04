@@ -120,7 +120,6 @@ inline void lut_ctor(int8_t* qlut, bitnet_float_type* b, bitnet_float_type* lut_
         tbl_mask[14] = 13;\n\
         tbl_mask[15] = 15;\n\
         uint8x16_t tbl_mask_q = vld1q_u8(tbl_mask);\n\
-#pragma unroll\n\
     for (int k = 0; k < act_k / 16; ++k) {{\n\
         float32x4x2_t vec_bs_x0 = vld2q_f32(b + k * 16);\n\
         float32x4x2_t vec_bs_x1 = vld2q_f32(b + k * 16 + 8);\n\
@@ -269,7 +268,6 @@ inline void tbl_impl_{0}(int32_t* c, int8_t* lut, uint8_t* a) {{\n\
 int32_t qgemm_lut_{0}(void* A, void* LUT, void* Scales, void* LUT_Scales, void* C) {{\n\
     alignas({1}) uint32_t CBits[BM{0}];\n\
     memset(&(CBits[0]), 0, BM{0} * sizeof(int32_t));\n\
-#pragma unroll\n\
     for (int32_t k_outer = 0; k_outer < {2} / BBK{0}; ++k_outer) {{\n\
         tbl_impl_{0}((&(((int32_t*)CBits)[0])), (&(((int8_t*)LUT)[(k_outer * BBK{0} / 2 * 32)])), (&(((uint8_t*)A)[(k_outer * BBK{0} / 2 / 2 * BM{0})])));\n\
     }}\n\
@@ -392,7 +390,16 @@ if __name__ == "__main__":
                         help="using simd instructions to compute (bm, 256 / bm) in one block")
     args = parser.parse_args()
 
-    kernel_shapes = ModelShapeDict[args.model]
+    model_alias = {
+        "bitnet-b1.58-2B-4T": "bitnet_b1_58-3B",
+        "BitNet-b1.58-2B-4T": "bitnet_b1_58-3B",
+    }
+    model_name = model_alias.get(args.model, args.model)
+
+    if model_name not in ModelShapeDict:
+        raise ValueError(f"Unsupported model '{args.model}'. Available: {', '.join(ModelShapeDict.keys())}")
+
+    kernel_shapes = ModelShapeDict[model_name]
 
     BM_list = [int(item) for item in args.BM.split(',')]
     BK_list = [int(item) for item in args.BK.split(',')]

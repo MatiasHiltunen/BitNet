@@ -115,7 +115,6 @@ inline void lut_ctor(int8_t* qlut, bitnet_float_type* b, bitnet_float_type* lut_
         tbl_mask[14] = 13;
         tbl_mask[15] = 15;
         uint8x16_t tbl_mask_q = vld1q_u8(tbl_mask);
-#pragma unroll
     for (int k = 0; k < act_k / 16; ++k) {{
         float32x4x2_t vec_bs_x0 = vld2q_f32(b + k * 16);
         float32x4x2_t vec_bs_x1 = vld2q_f32(b + k * 16 + 8);
@@ -287,7 +286,6 @@ inline void tbl_impl_3200_8640(int32_t* c, int8_t* lut, uint8_t* a) {
 int32_t qgemm_lut_3200_8640(void* A, void* LUT, void* Scales, void* LUT_Scales, void* C) {
     alignas(32) uint32_t CBits[BM3200_8640];
     memset(&(CBits[0]), 0, BM3200_8640 * sizeof(int32_t));
-#pragma unroll
     for (int32_t k_outer = 0; k_outer < 8640 / BBK3200_8640; ++k_outer) {
         tbl_impl_3200_8640((&(((int32_t*)CBits)[0])), (&(((int8_t*)LUT)[(k_outer * BBK3200_8640 / 2 * 32)])), (&(((uint8_t*)A)[(k_outer * BBK3200_8640 / 2 / 2 * BM3200_8640)])));
     }
@@ -421,7 +419,6 @@ inline void tbl_impl_3200_3200(int32_t* c, int8_t* lut, uint8_t* a) {
 int32_t qgemm_lut_3200_3200(void* A, void* LUT, void* Scales, void* LUT_Scales, void* C) {
     alignas(32) uint32_t CBits[BM3200_3200];
     memset(&(CBits[0]), 0, BM3200_3200 * sizeof(int32_t));
-#pragma unroll
     for (int32_t k_outer = 0; k_outer < 3200 / BBK3200_3200; ++k_outer) {
         tbl_impl_3200_3200((&(((int32_t*)CBits)[0])), (&(((int8_t*)LUT)[(k_outer * BBK3200_3200 / 2 * 32)])), (&(((uint8_t*)A)[(k_outer * BBK3200_3200 / 2 / 2 * BM3200_3200)])));
     }
@@ -539,7 +536,6 @@ inline void tbl_impl_8640_3200(int32_t* c, int8_t* lut, uint8_t* a) {
 int32_t qgemm_lut_8640_3200(void* A, void* LUT, void* Scales, void* LUT_Scales, void* C) {
     alignas(32) uint32_t CBits[BM8640_3200];
     memset(&(CBits[0]), 0, BM8640_3200 * sizeof(int32_t));
-#pragma unroll
     for (int32_t k_outer = 0; k_outer < 3200 / BBK8640_3200; ++k_outer) {
         tbl_impl_8640_3200((&(((int32_t*)CBits)[0])), (&(((int8_t*)LUT)[(k_outer * BBK8640_3200 / 2 * 32)])), (&(((uint8_t*)A)[(k_outer * BBK8640_3200 / 2 / 2 * BM8640_3200)])));
     }
