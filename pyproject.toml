@@ -1,0 +1,12 @@
+[project]
+name = "bitnet-cpp"
+version = "0.1.0"
+description = "uv-managed development environment for bitnet.cpp"
+readme = "README.md"
+requires-python = ">=3.10"
+dependencies = [
+    "huggingface-hub>=0.31.0",
+]
+
+[tool.uv]
+package = false

@@ -159,10 +159,11 @@ This project is based on the [llama.cpp](https://github.com/ggerganov/llama.cpp)
 ## Installation
 
 ### Requirements
-- python>=3.9
+- python>=3.10
+- uv>=0.11
 - cmake>=3.22
 - clang>=18
-    - For Windows users, install [Visual Studio 2022](https://visualstudio.microsoft.com/downloads/). In the installer, toggle on at least the following options(this also automatically installs the required additional tools like CMake):
+    - For Windows users, install [Visual Studio 2022 or newer](https://visualstudio.microsoft.com/downloads/). In the installer, toggle on at least the following options(this also automatically installs the required additional tools like CMake):
         -  Desktop-development with C++
         -  C++-CMake Tools for Windows
         -  Git for Windows
@@ -171,12 +172,12 @@ This project is based on the [llama.cpp](https://github.com/ggerganov/llama.cpp)
     - For Debian/Ubuntu users, you can download with [Automatic installation script](https://apt.llvm.org/)
 
         `bash -c "$(wget -O - https://apt.llvm.org/llvm.sh)"`
-- conda (highly recommend)
+- `hf` / `huggingface-cli` for model downloads
 
 ### Build from source
 
 > [!IMPORTANT]
-> If you are using Windows, please remember to always use a Developer Command Prompt / PowerShell for VS2022 for the following commands. Please refer to the FAQs below if you see any issues.
+> On Windows, `setup_env.py` can automatically discover the Visual Studio-bundled `cmake.exe` and configure the matching Visual Studio generator with `ClangCL`. A Developer PowerShell still works, but it is no longer required as long as `clang` is on `PATH`.
 
 1. Clone the repo
 ```bash
@@ -185,17 +186,14 @@ cd BitNet
 ```
 2. Install the dependencies
 ```bash
-# (Recommended) Create a new conda environment
-conda create -n bitnet-cpp python=3.9
-conda activate bitnet-cpp
-
-pip install -r requirements.txt
+uv sync
 ```
 3. Build the project
 ```bash
-# Manually download the model and run with local path
-huggingface-cli download microsoft/BitNet-b1.58-2B-4T-gguf --local-dir models/BitNet-b1.58-2B-4T
-python setup_env.py -md models/BitNet-b1.58-2B-4T -q i2_s
+# Manually download the pre-quantized model from the README and build for it.
+# On ARM64 Windows, `-q tl1` is also supported if you want the ARM-specific kernel path.
+hf download microsoft/BitNet-b1.58-2B-4T-gguf ggml-model-i2_s.gguf --local-dir models/BitNet-b1.58-2B-4T
+uv run python setup_env.py -md models/BitNet-b1.58-2B-4T -q i2_s
 
 ```
 <pre>
@@ -221,7 +219,7 @@ optional arguments:
 ### Basic usage
 ```bash
 # Run inference with the quantized model
-python run_inference.py -m models/BitNet-b1.58-2B-4T/ggml-model-i2_s.gguf -p "You are a helpful assistant" -cnv
+uv run python run_inference.py -m models/BitNet-b1.58-2B-4T/ggml-model-i2_s.gguf -p "You are a helpful assistant" -cnv
 ```
 <pre>
 usage: run_inference.py [-h] [-m MODEL] [-n N_PREDICT] -p PROMPT [-t THREADS] [-c CTX_SIZE] [-temp TEMPERATURE] [-cnv]
@@ -280,7 +278,7 @@ Here's a brief explanation of each argument:
 For example:  
    
 ```sh  
-python utils/e2e_benchmark.py -m /path/to/model -n 200 -p 256 -t 4  
+uv run python utils/e2e_benchmark.py -m /path/to/model -n 200 -p 256 -t 4  
 ```  
    
 This command would run the inference benchmark using the model located at `/path/to/model`, generating 200 tokens from a 256 token prompt, utilizing 4 threads.  
@@ -288,20 +286,26 @@ This command would run the inference benchmark using the model located at `/path
 For the model layout that do not supported by any public model, we provide scripts to generate a dummy model with the given model layout, and run the benchmark on your machine:
 
 ```bash
-python utils/generate-dummy-bitnet-model.py models/bitnet_b1_58-large --outfile models/dummy-bitnet-125m.tl1.gguf --outtype tl1 --model-size 125M
+uv run python utils/generate-dummy-bitnet-model.py models/bitnet_b1_58-large --outfile models/dummy-bitnet-125m.tl1.gguf --outtype tl1 --model-size 125M
 
 # Run benchmark with the generated model, use -m to specify the model path, -p to specify the prompt processed, -n to specify the number of token to generate
-python utils/e2e_benchmark.py -m models/dummy-bitnet-125m.tl1.gguf -p 512 -n 128
+uv run python utils/e2e_benchmark.py -m models/dummy-bitnet-125m.tl1.gguf -p 512 -n 128
 ```
 
 ### Convert from `.safetensors` Checkpoints
 
+If you need to convert a raw Hugging Face checkpoint instead of using the pre-quantized GGUF release above, install the legacy conversion stack into the `uv` environment first:
+
+```sh
+uv pip install -r requirements.txt
+```
+
 ```sh
 # Prepare the .safetensors model file
-huggingface-cli download microsoft/bitnet-b1.58-2B-4T-bf16 --local-dir ./models/bitnet-b1.58-2B-4T-bf16
+hf download microsoft/bitnet-b1.58-2B-4T-bf16 --local-dir ./models/bitnet-b1.58-2B-4T-bf16
 
 # Convert to gguf model
-python ./utils/convert-helper-bitnet.py ./models/bitnet-b1.58-2B-4T-bf16
+uv run python ./utils/convert-helper-bitnet.py ./models/bitnet-b1.58-2B-4T-bf16
 ```
 
 ### FAQ (Frequently Asked Questions)📌 
@@ -311,7 +315,7 @@ python ./utils/convert-helper-bitnet.py ./models/bitnet-b1.58-2B-4T-bf16
 **A:**
 This is an issue introduced in recent version of llama.cpp. Please refer to this [commit](https://github.com/tinglou/llama.cpp/commit/4e3db1e3d78cc1bcd22bcb3af54bd2a4628dd323) in the [discussion](https://github.com/abetlen/llama-cpp-python/issues/1942) to fix this issue.
 
-#### Q2: How to build with clang in conda environment on windows?
+#### Q2: How to build with clang on windows?
 
 **A:** 
 Before building the project, verify your clang installation and access to Visual Studio tools by running:
@@ -324,7 +328,7 @@ This command checks that you are using the correct version of clang and that the
 'clang' is not recognized as an internal or external command, operable program or batch file.
 ```
 
-It indicates that your command line window is not properly initialized for Visual Studio tools.
+It indicates that your command line window is not properly initialized for Visual Studio tools. `setup_env.py` now resolves the Visual Studio CMake installation automatically, but it still expects the LLVM/Clang tools to be available on `PATH`.
 
 • If you are using Command Prompt, run:
 ```
